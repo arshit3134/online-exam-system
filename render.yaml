@@ -1,0 +1,31 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: examflow-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false            # paste your MongoDB Atlas connection string in the Render dashboard
+      - key: JWT_SECRET
+        generateValue: true    # Render generates a strong random secret
+      - key: CLIENT_URL
+        sync: false            # your Vercel URL, e.g. https://examflow.vercel.app (no trailing slash)
+      - key: JWT_EXPIRES_DAYS
+        value: "7"
+      - key: SUBMIT_GRACE_SECONDS
+        value: "15"
+      # Optional, to create the first teacher on boot (remove after the first successful deploy):
+      # - key: SEED_TEACHER_NAME
+      #   sync: false
+      # - key: SEED_TEACHER_EMAIL
+      #   sync: false
+      # - key: SEED_TEACHER_PASSWORD
+      #   sync: false
