@@ -10,7 +10,6 @@ const isOver = (attempt, now = Date.now(), grace = 0) => now > attempt.expiresAt
 
 const maxAttemptsOf = (exam) => (exam.allowMultipleAttempts ? exam.maxAttempts : 1);
 
-/** Validates incoming answers against the exam and returns [{questionId(string), selectedOption|null}] deduplicated. */
 function normalizeIncoming(exam, incoming = []) {
   const byId = new Map(exam.questions.map((q) => [String(q._id), q]));
   const latest = new Map();
@@ -25,7 +24,6 @@ function normalizeIncoming(exam, incoming = []) {
   return [...latest].map(([questionId, selectedOption]) => ({ questionId, selectedOption }));
 }
 
-/** Pure grading function. Never trusts anything from the client except the selected option indexes. */
 function grade(exam, answers) {
   const selected = new Map(answers.map((a) => [String(a.questionId), a.selectedOption]));
   let score = 0;
@@ -62,7 +60,6 @@ function grade(exam, answers) {
   };
 }
 
-/** Atomically finalizes an in-progress attempt. Safe to call concurrently: only one caller wins. */
 async function finalizeAttempt(attemptId, { incoming, auto = false } = {}) {
   const attempt = await Attempt.findById(attemptId);
   if (!attempt) throw new ApiError(404, 'Attempt not found');
@@ -73,7 +70,6 @@ async function finalizeAttempt(attemptId, { incoming, auto = false } = {}) {
 
   const now = new Date();
   const merged = new Map(attempt.answers.map((a) => [String(a.questionId), a.selectedOption]));
-  // Late answers (after expiry + grace) are ignored; the server-saved answers are final.
   if (incoming && !isOver(attempt, now.getTime(), graceMs())) {
     for (const a of normalizeIncoming(exam, incoming)) merged.set(a.questionId, a.selectedOption);
   }
@@ -98,10 +94,9 @@ async function finalizeAttempt(attemptId, { incoming, auto = false } = {}) {
     },
     { new: true }
   );
-  return updated || Attempt.findById(attempt._id); // lost the race: return the winner's result
+  return updated || Attempt.findById(attempt._id);
 }
 
-/** Lazily finalizes an expired attempt (called on read/save paths). */
 async function ensureCurrent(attempt) {
   if (attempt.status === 'in_progress' && isOver(attempt, Date.now(), graceMs())) {
     return finalizeAttempt(attempt._id, { auto: true });
@@ -116,7 +111,6 @@ async function startAttempt(exam, user) {
   if (state === 'ended') throw new ApiError(403, 'This exam is closed', { code: 'EXAM_CLOSED' });
   if (!exam.questions.length) throw new ApiError(409, 'This exam has no questions yet');
 
-  // Resume an in-progress attempt if one exists
   let existing = await Attempt.findOne({ examId: exam._id, candidateId: user._id, status: 'in_progress' });
   if (existing) {
     existing = await ensureCurrent(existing);
@@ -144,7 +138,6 @@ async function startAttempt(exam, user) {
     });
   } catch (err) {
     if (err.code === 11000) {
-      // Concurrent start: return the attempt created by the other request
       const other = await Attempt.findOne({ examId: exam._id, candidateId: user._id, status: 'in_progress' });
       if (other) return other;
     }
@@ -166,7 +159,6 @@ async function saveAnswers(attempt, exam, incoming) {
   return Attempt.findById(attempt._id);
 }
 
-/** Payload used by the exam-taking screen. Contains NO answer key. */
 function attemptPayload(attempt, exam) {
   const remainingSeconds = Math.max(Math.floor((attempt.expiresAt.getTime() - Date.now()) / 1000), 0);
   return {
@@ -189,7 +181,6 @@ function attemptPayload(attempt, exam) {
   };
 }
 
-/** Full review (with answer key + explanations). Only call once results are released / for teachers. */
 function buildReview(attempt, exam) {
   const byId = new Map(attempt.answers.map((a) => [String(a.questionId), a]));
   return exam.questions.map((q, i) => {
@@ -227,7 +218,6 @@ const attemptSummary = (a) => ({
   unansweredCount: a.unansweredCount,
 });
 
-/** Background sweeper: finalizes attempts whose timer ran out even if the browser was closed. */
 async function sweepExpired() {
   const cutoff = new Date(Date.now() - graceMs());
   const stale = await Attempt.find({ status: 'in_progress', expiresAt: { $lt: cutoff } }).select('_id').limit(200).lean();

@@ -4,10 +4,8 @@ const ApiError = require('../utils/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { setAuthCookie, clearAuthCookie } = require('../utils/token');
 
-// Used to keep response time constant when the account does not exist
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
 
-// Public registration ALWAYS creates a candidate. Any `role` sent by the client is ignored.
 exports.register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
   if (await User.exists({ email })) throw new ApiError(409, 'An account with this email already exists', { code: 'EMAIL_TAKEN' });

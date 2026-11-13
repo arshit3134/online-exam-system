@@ -4,7 +4,6 @@ const env = require('../config/env');
 
 const notFound = (req, res) => res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}`, code: 'NOT_FOUND' });
 
-// eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
   let status = err.status || 500;
   let message = err.message || 'Something went wrong';

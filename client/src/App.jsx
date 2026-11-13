@@ -47,7 +47,6 @@ export default function App() {
           <Route path="results/:id" element={<ResultPage />} />
         </Route>
 
-        {/* Distraction-free exam screen (no sidebar) */}
         <Route path="/exam/:attemptId" element={<ProtectedRoute role="candidate"><TakeExam /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />

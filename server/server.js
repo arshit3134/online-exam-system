@@ -19,7 +19,6 @@ async function main() {
 
   const server = app.listen(env.PORT, () => console.log(`🚀 API listening on :${env.PORT} (${env.NODE_ENV})`));
 
-  // Finalize attempts whose timer expired even if the candidate closed the browser
   const timer = setInterval(() => sweepExpired().catch((e) => console.error('sweep error', e.message)), 30 * 1000);
   timer.unref();
 

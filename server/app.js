@@ -12,14 +12,13 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
-app.set('trust proxy', 1); // Render / Railway sit behind a proxy (needed for secure cookies + rate limiting)
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 app.use(helmet());
 app.use(
   cors({
     origin(origin, cb) {
-      // Same-origin / server-to-server requests have no Origin header
       if (!origin || env.clientOrigins.includes(origin)) return cb(null, true);
       return cb(new Error('CORS: origin not allowed'));
     },
